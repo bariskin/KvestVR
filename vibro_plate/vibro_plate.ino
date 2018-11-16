@@ -1,3 +1,18 @@
+/*
+10.0.0.x
+1- router
+8- ноутбук1
+9- ноутбук2
+11 - труба аналоговый вход  
+12 - рубльник аналоговый вход
+13 - вибро
+14 - решетка
+15 - козырек2
+16 - козырек2
+17 - козырек1
+18 0 ручка аналоговый вход
+*/
+
 #include <ESP8266WiFi.h>
 #include <WiFiUDP.h>
 
@@ -20,55 +35,52 @@ int flag_output_off_on_2 = 0;
 //*******************************************
 
 
-/*
-10.0.0.x
-1- router
-8- ноутбук1
-9- ноутбук2
-11 - труба аналоговый вход  
-12 - рубльник аналоговый вход
-13 - вибро
-14 - решетка
-15 -  kozyrekmagn,
-16 - козырек2
-17 - козырек1
-18 0 ручка аналоговый вход
 
-*/
+ADC_MODE(ADC_TOUT);
 
 const char* ssid = "DLink6610";                     // WiFi APN Name
 const char* password = "1234qwerasdf";              // WiFi passphrase
 
 
+//const char* ssid = "RT-WiFi-BDB8";
+//const char* password = "2731007085";
+
 unsigned char ip_sh1[] = {10,0,0,8};                // Server_1 IP
 unsigned char ip_sh2[] = {10,0,0,9};                // Server_2 IP
-unsigned char ip_sh3[] = {10,0,0,3};                // Server_3 
+unsigned char ip_sh3[] = {10,0,0,3};                // Server_3 IP
 
 
-IPAddress ip(10,0,0,13);                            //статический для вибро 
+IPAddress ip(10,0,0,13);                            //IP для вибро
 IPAddress gateway(10,0,0,1);
 IPAddress subnet(255,255,255,0);
 
-unsigned int port = 6000;                       // Server port (listen)
 
+unsigned int port = 6000;                           // Server port (listen)
 
-int pin_out_LED = 2;                            // LED (internal_LED=2)
+int pin_out_LED = 2;                                // LED (internal_LED=2)
 int pin_out_1 = 5;
 int pin_out_2 = 4;
-int pin_in_1 = 12;                              // Button (pin D0=16, D1=5, D2=4, D3=0, D4=2, D5=14, D6=12, D7=13, D8=15, D9=3, D10=1, D11=9, D21=10)
-int pin_in_2 = 14;
+int pin_in_1 = 12;                                  // Button (pin D0=16, D1=5, D2=4, D3=0, D4=2, D5=14, D6=12, D7=13, D8=15, D9=3, D10=1, D11=9, D21=10)
+int pin_in_2 = 14; 
+
 
 byte TRIGGER1_flag = 0;
 byte TRIGGER2_flag = 0;
-byte input_1_flag = 1; // флаг разрешения сигналов управления 
-byte input_2_flag = 1; // флаг разрешения сигналов управления 
+byte input_1_flag = 1;
+byte input_2_flag = 1;
+byte input_analog_flag = 1;
 
+float VCCinput = 0 ;
+double VCCvalue = 0 ;
+
+double Sumvcc;
+double vcc;
 
 WiFiUDP Udp;
+unsigned int localUdpPort = 8888;                  // Arduino port (listen)
+char incomingPacket[255];                          // Arduino incoming buffer size
 
-unsigned int localUdpPort = 8888;                // Arduino port (listen)
-char incomingPacket[255];                        // Arduino incoming buffer size
-char replyPacket[] = "Board status: received: "; // 
+char replyPacket[] = "Board status: received: ";   // 
 
 void setup()
 { 
@@ -77,13 +89,8 @@ void setup()
   pinMode(pin_in_1,  INPUT_PULLUP);                 // подтяжка пина  к плюсу 
   pinMode(pin_in_2,  INPUT_PULLUP);                 // подтяжка пина  к плюсу
   pinMode(pin_out_LED, OUTPUT);
-
-
-  digitalWrite(pin_out_1, LOW);
-  digitalWrite(pin_out_2, LOW);
-  
+ 
   WiFi.config(ip, gateway, subnet);
-  
   Serial.begin(115200);
   
   Serial.printf("Board status: Connecting to %s ", ssid);
@@ -101,6 +108,7 @@ void setup()
   Udp.begin(localUdpPort);
   Serial.printf("Board status: listening at IP: %s, UDP port: %d\n", WiFi.localIP().toString().c_str(), localUdpPort);
 }
+
 
 // ----------------------------------MAIN PART -------------------------------------- //
 void loop()
@@ -205,11 +213,11 @@ void loop()
                    }   
        }      
 // // ----------------------------------- ANALOG VOLTAGE PACKET SEND ------------------------- //
-// Serial.println();
-// Serial.println();
-// Serial.print("Connect to ");
-// Serial.println(ssid);
-// WiFi.begin(ssid, password);             // Connecting to WiFi
+ Serial.println();
+ Serial.println();
+ Serial.print("Connect to ");
+ Serial.println(ssid);
+ WiFi.begin(ssid, password);             // Connecting to WiFi
 // --------------------------------------- DIGITAL OUTPUT ----------------------------- //
 
  if (( flag_output_off_on_1 == 1) && (TRIGGER1_flag == 0) )
